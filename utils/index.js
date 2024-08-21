@@ -5,9 +5,10 @@ export const createJWT = (res, userId) => {
     });
 
     
-  res.cookie("token", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV !== "development", // true in production
-    sameSite: "None", // For cross-origin requests
-    maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day
-});
+    res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV !== "development",
+        sameSite: "strict", 
+        maxAge: 1 * 24 * 60 * 60 * 1000, //1 day
+    });
+};
