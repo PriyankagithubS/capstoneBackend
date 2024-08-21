@@ -20,14 +20,16 @@ app.use(cors({
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
 }));
 
+app.options('*', cors()); // This should handle preflight requests before routes
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(morgan("dev")); // Ensure morgan is used before routes
 
 // Routes setup
-app.use("/api/user", userRouter); // Corrected to app.use
-app.use("/api/task", taskRoutes); // Corrected to app.use
+app.use("/api/user", userRouter);
+app.use("/api/task", taskRoutes);
 
 // Default route
 app.get('/', (req, res) => {
