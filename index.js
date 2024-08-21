@@ -14,11 +14,12 @@ const app = express();
 
 // Middleware setup
 app.use(cors({
-    origin: ["https://projectmangertoolcapstone.netlify.app","http://localhost:3000", "http://localhost:3001"],
-
-    methods: ["GET", "POST", "DELETE", "PUT"],
+    origin: ["https://capstoneprojectmanagertool.netlify.app", "http://localhost:3000", "http://localhost:3001"],
+    methods: ["GET", "POST", "DELETE", "PUT", "OPTIONS"],
     credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
