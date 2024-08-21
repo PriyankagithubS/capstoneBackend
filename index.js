@@ -14,7 +14,7 @@ const app = express();
 
 // Middleware setup
 app.use(cors({
-    origin: ["https://projectmangertoolcapstone.netlify.app"],
+    origin: ["https://projectmangertoolcapstone.netlify.app","http://localhost:3000", "http://localhost:3001",],
 
     methods: ["GET", "POST", "DELETE", "PUT"],
     credentials: true,
