@@ -1,100 +1,67 @@
-import response  from "express";
 import User from "../Models/user.Schema.js";
-import { createJWT } from "../utils/index.js";
+import { createJWT } from "../utils/jwt.js";
 import Notice from "../Models/notification.Schema.js";
 
 export const registerUser = async (req, res) => {
     try {
         const { name, email, password, isAdmin, role, title } = req.body;
-
         const userExist = await User.findOne({ email });
 
         if (userExist) {
-            return res.status(400).json({
-                status: false,
-                message: "User already exists",
-            });
+            return res.status(400).json({ status: false, message: "User already exists" });
         }
 
-        const user = await User.create({
-            name,
-            email,
-            password,
-            isAdmin,
-            role,
-            title,
-        });
+        const user = await User.create({ name, email, password, isAdmin, role, title });
+        const token = createJWT(user._id);
 
-        if (user) {
-            isAdmin ? createJWT(res, user._id) : null;
-
-            user.password = undefined;
-
-            res.status(201).json(user);
-        } else {
-            return res
-                .status(400)
-                .json({ status: false, message: "Invalid user data" });
-        }
+        res.status(201).json({ status: true, message: "User registered successfully", user: { name, email, isAdmin, role }, token });
     } catch (error) {
-        console.log(error);
-        return res.status(400).json({ status: false, message: error.message });
+        res.status(500).json({ status: false, message: "Server error" });
     }
 };
 
+// User login
 export const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
-
         const user = await User.findOne({ email });
 
-        if (!user) {
-            return res
-                .status(401)
-                .json({ status: false, message: "Invalid email or password." });
+        if (!user || !(await user.matchPassword(password))) {
+            return res.status(401).json({ status: false, message: "Invalid email or password" });
         }
 
-        if (!user?.isActive) {
-            return res.status(401).json({
-                status: false,
-                message: "User account has been deactivated, contact the administrator",
-            });
+        if (!user.isActive) {
+            return res.status(403).json({ status: false, message: "Account is deactivated" });
         }
 
-        const isMatch = await user.matchPassword(password);
+        const token = createJWT(user._id);
+        res.status(200).json({
+            status: true,
+            message: "Login successful",
+            token: token,  // Ensure the token is being sent
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                title: user.title,
+                role: user.role,
+                isAdmin: user.isAdmin,
+                isActive: user.isActive
+            }
+        });
 
-        if (user && isMatch) {
-            createJWT(res, user._id);
-
-            user.password = undefined;
-
-            res.status(200).json(user);
-        } else {
-            return res
-                .status(401)
-                .json({ status: false, message: "Invalid email or password" });
-        }
     } catch (error) {
-        console.log(error);
-        return res.status(400).json({ status: false, message: error.message });
+        res.status(500).json({ status: false, message: "Server error" });
     }
 };
 
-export const logoutUser = async (req, res) => {
-    try {
-        
-        res.cookie("token", "", {
-            httpOnly: true, 
-            expires: new Date(0), // This effectively clears the cookie
-            secure: process.env.NODE_ENV === "production", // Set to true in production to use HTTPS
-            sameSite: "Strict", // You can adjust this based on your needs
-        });
 
-        res.status(200).json({ message: "Logout successful" });
-    } catch (error) {
-        console.log(error);
-        return res.status(500).json({ status: false, message: "Internal Server Error" });
-    }
+
+
+
+// User logout
+export const logoutUser = (req, res) => {
+    res.status(200).json({ status: true, message: "Logout successful" });
 };
 
 export const getTeamList = async (req, res) => {
@@ -103,8 +70,7 @@ export const getTeamList = async (req, res) => {
 
         res.status(200).json(users);
     } catch (error) {
-        console.log(error);
-        return res.status(400).json({ status: false, message: error.message });
+        res.status(500).json({ status: false, message: "Server error" });
     }
 };
 
@@ -117,10 +83,9 @@ export const getNotificationsList = async (req, res) => {
             isRead: { $nin: [userId] },
         }).populate("task", "title");
 
-        res.status(201).json(notice);
+        res.status(200).json(notice);
     } catch (error) {
-        console.log(error);
-        return res.status(400).json({ status: false, message: error.message });
+        res.status(500).json({ status: false, message: "Server error" });
     }
 };
 
@@ -145,9 +110,9 @@ export const updateUserProfile = async (req, res) => {
 
             const updatedUser = await user.save();
 
-            user.password = undefined;
+            updatedUser.password = undefined;
 
-            res.status(201).json({
+            res.status(200).json({
                 status: true,
                 message: "Profile Updated Successfully.",
                 user: updatedUser,
@@ -156,8 +121,7 @@ export const updateUserProfile = async (req, res) => {
             res.status(404).json({ status: false, message: "User not found" });
         }
     } catch (error) {
-        console.log(error);
-        return res.status(400).json({ status: false, message: error.message });
+        res.status(500).json({ status: false, message: "Server error" });
     }
 };
 
@@ -181,10 +145,9 @@ export const markNotificationRead = async (req, res) => {
             );
         }
 
-        res.status(201).json({ status: true, message: "Done" });
+        res.status(200).json({ status: true, message: "Notifications marked as read" });
     } catch (error) {
-        console.log(error);
-        return res.status(400).json({ status: false, message: error.message });
+        res.status(500).json({ status: false, message: "Server error" });
     }
 };
 
@@ -201,16 +164,15 @@ export const changeUserPassword = async (req, res) => {
 
             user.password = undefined;
 
-            res.status(201).json({
+            res.status(200).json({
                 status: true,
-                message: `Password chnaged successfully.`,
+                message: "Password changed successfully.",
             });
         } else {
             res.status(404).json({ status: false, message: "User not found" });
         }
     } catch (error) {
-        console.log(error);
-        return res.status(400).json({ status: false, message: error.message });
+        res.status(500).json({ status: false, message: "Server error" });
     }
 };
 
@@ -221,21 +183,19 @@ export const activateUserProfile = async (req, res) => {
         const user = await User.findById(id);
 
         if (user) {
-            user.isActive = req.body.isActive; //!user.isActive
+            user.isActive = req.body.isActive;
 
             await user.save();
 
-            res.status(201).json({
+            res.status(200).json({
                 status: true,
-                message: `User account has been ${user?.isActive ? "activated" : "disabled"
-                    }`,
+                message: `User account has been ${user.isActive ? "activated" : "disabled"}`,
             });
         } else {
             res.status(404).json({ status: false, message: "User not found" });
         }
     } catch (error) {
-        console.log(error);
-        return res.status(400).json({ status: false, message: error.message });
+        res.status(500).json({ status: false, message: "Server error" });
     }
 };
 
@@ -245,11 +205,8 @@ export const deleteUserProfile = async (req, res) => {
 
         await User.findByIdAndDelete(id);
 
-        res
-            .status(200)
-            .json({ status: true, message: "User deleted successfully" });
+        res.status(200).json({ status: true, message: "User deleted successfully" });
     } catch (error) {
-        console.log(error);
-        return res.status(400).json({ status: false, message: error.message });
+        res.status(500).json({ status: false, message: "Server error" });
     }
 };

@@ -2,30 +2,26 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDb from './Database/dbConfig.js';
-import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import { errorHandler, routeNotFound } from './Middleware/error.Middleware.js';
 import userRouter from './Routers/user.Routes.js';
 import taskRoutes from './Routers/task.Routes.js';
 
-dotenv.config(); // Ensure dotenv is configured before accessing process.env
+dotenv.config(); // Load environment variables
 
 const app = express();
 
 // Middleware setup
 app.use(cors({
-    origin: ["http://localhost:3000", "http://localhost:3001","https://capstoneprojectmanagertool.netlify.app"],
+    origin: ["http://localhost:3000", "http://localhost:3001", "https://capstoneprojectmanagertool.netlify.app"],
     methods: ["GET", "POST", "DELETE", "PUT"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
 }));
 
-app.options('*', cors()); // This should handle preflight requests before routes
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
-app.use(morgan("dev")); // Ensure morgan is used before routes
+app.use(express.json()); // For parsing application/json
+app.use(express.urlencoded({ extended: true })); // For parsing application/x-www-form-urlencoded
+app.use(morgan('dev')); // HTTP request logger
 
 // Routes setup
 app.use("/api/user", userRouter);
@@ -33,10 +29,10 @@ app.use("/api/task", taskRoutes);
 
 // Default route
 app.get('/', (req, res) => {
-    res.status(200).json({ Message: "App is working fine" });
+    res.status(200).json({ message: "App is working fine" });
 });
 
-// Middleware for handling errors and 404 routes
+// Error handling middlewares
 app.use(routeNotFound);
 app.use(errorHandler);
 

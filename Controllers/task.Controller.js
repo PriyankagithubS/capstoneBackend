@@ -5,19 +5,24 @@ import User from "../Models/user.Schema.js";
 export const createTask = async (req, res) => {
     try {
         const { userId } = req.user;
-
         const { title, team, stage, date, priority, assets } = req.body;
 
-        let text = "New task has been assigned to you";
-        if (team?.length > 1) {
-            text = text + ` and ${team?.length - 1} others.`;
+        // Validate required fields
+        if (!title || !team || !date || !stage || !priority) {
+            return res.status(400).json({ status: false, message: "Missing required fields" });
         }
 
-        text =
-            text +
-            ` The task priority is set a ${priority} priority, so check and act accordingly. The task date is ${new Date(
-                date
-            ).toDateString()}. Thank you!!!`;
+        // Ensure `stage` and `priority` are strings
+        if (typeof stage !== 'string' || typeof priority !== 'string') {
+            return res.status(400).json({ status: false, message: "Invalid data type for stage or priority" });
+        }
+
+        let text = "New task has been assigned to you";
+        if (team.length > 1) {
+            text += ` and ${team.length - 1} others.`;
+        }
+
+        text += ` The task priority is set at ${priority.toLowerCase()} priority, so check and act accordingly. The task date is ${new Date(date).toDateString()}. Thank you!!!`;
 
         const activity = {
             type: "assigned",
@@ -41,14 +46,13 @@ export const createTask = async (req, res) => {
             task: task._id,
         });
 
-        res
-            .status(200)
-            .json({ status: true, task, message: "Task created successfully." });
+        res.status(200).json({ status: true, task, message: "Task created successfully." });
     } catch (error) {
         console.log(error);
         return res.status(400).json({ status: false, message: error.message });
     }
 };
+
 
 export const duplicateTask = async (req, res) => {
     try {
@@ -252,8 +256,18 @@ export const getTask = async (req, res) => {
 export const createSubTask = async (req, res) => {
     try {
         const { title, tag, date } = req.body;
-
         const { id } = req.params;
+
+        // Ensure id is defined and valid
+        if (!id) {
+            return res.status(400).json({ status: false, message: "Task ID is required." });
+        }
+
+        // Find the task and add sub-task
+        const task = await Task.findById(id);
+        if (!task) {
+            return res.status(404).json({ status: false, message: "Task not found." });
+        }
 
         const newSubTask = {
             title,
@@ -261,20 +275,16 @@ export const createSubTask = async (req, res) => {
             tag,
         };
 
-        const task = await Task.findById(id);
-
         task.subTasks.push(newSubTask);
-
         await task.save();
 
-        res
-            .status(200)
-            .json({ status: true, message: "SubTask added successfully." });
+        res.status(200).json({ status: true, message: "Sub-task added successfully." });
     } catch (error) {
         console.log(error);
         return res.status(400).json({ status: false, message: error.message });
     }
 };
+
 
 export const updateTask = async (req, res) => {
     try {
@@ -304,22 +314,40 @@ export const updateTask = async (req, res) => {
 export const trashTask = async (req, res) => {
     try {
         const { id } = req.params;
+        const { actionType } = req.query;
 
-        const task = await Task.findById(id);
+        if (actionType === "trash") {
+            const task = await Task.findById(id);
+            if (!task) return res.status(404).json({ status: false, message: "Task not found." });
 
-        task.isTrashed = true;
+            task.isTrashed = true;
+            await task.save();
+            res.status(200).json({ status: true, message: "Task trashed successfully." });
+        } else if (actionType === "restore") {
+            const task = await Task.findById(id);
+            if (!task) return res.status(404).json({ status: false, message: "Task not found." });
 
-        await task.save();
-
-        res.status(200).json({
-            status: true,
-            message: `Task trashed successfully.`,
-        });
+            task.isTrashed = false;
+            await task.save();
+            res.status(200).json({ status: true, message: "Task restored successfully." });
+        } else if (actionType === "delete") {
+            await Task.findByIdAndDelete(id);
+            res.status(200).json({ status: true, message: "Task deleted successfully." });
+        } else if (actionType === "deleteAll") {
+            await Task.deleteMany({ isTrashed: true });
+            res.status(200).json({ status: true, message: "All trashed tasks deleted successfully." });
+        } else if (actionType === "restoreAll") {
+            await Task.updateMany({ isTrashed: true }, { $set: { isTrashed: false } });
+            res.status(200).json({ status: true, message: "All trashed tasks restored successfully." });
+        } else {
+            res.status(400).json({ status: false, message: "Invalid actionType." });
+        }
     } catch (error) {
         console.log(error);
         return res.status(400).json({ status: false, message: error.message });
     }
 };
+
 
 export const deleteRestoreTask = async (req, res) => {
     try {

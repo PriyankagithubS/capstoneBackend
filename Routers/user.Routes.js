@@ -26,7 +26,7 @@ router.put("/profile", protectRoute, updateUserProfile);
 router.put("/read-noti", protectRoute, markNotificationRead);
 router.put("/change-password", protectRoute, changeUserPassword);
 
-// //   FOR ADMIN ONLY - ADMIN ROUTES
+// Admin-only routes
 router
     .route("/:id")
     .put(protectRoute, isAdminRoute, activateUserProfile)
