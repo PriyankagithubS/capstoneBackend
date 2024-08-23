@@ -13,12 +13,20 @@ const app = express();
 
 // Middleware setup
 app.use(cors({
-    origin: ["http://localhost:3000", "http://localhost:3001", "https://capstoneprojectmanagertool.netlify.app"],
+    origin: [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "https://projectmangertoolcapstone.netlify.app"
+    ],
     methods: ["GET", "POST", "DELETE", "PUT"],
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
 }));
 
+// Handle preflight requests
+app.options('*', cors());
+
+// Middleware for parsing requests
 app.use(express.json()); // For parsing application/json
 app.use(express.urlencoded({ extended: true })); // For parsing application/x-www-form-urlencoded
 app.use(morgan('dev')); // HTTP request logger
@@ -40,6 +48,7 @@ app.use(errorHandler);
 connectDb();
 
 // Start server
-app.listen(process.env.PORT, () => {
-    console.log(`Server is running on port ${process.env.PORT}`);
+const PORT = process.env.PORT || 8800;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });

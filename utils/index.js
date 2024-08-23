@@ -1,15 +1,20 @@
-import jwt from "jsonwebtoken";
+import express from 'express';
+import { createJWT } from './jwt'; 
 
-export const createJWT = (res, userId) => {
-    // Generate the JWT
-    const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
-        expiresIn: "7d",
-    });
+const router = express.Router();
 
-    // Send the token in the response body
+router.post('/login', (req, res) => {
+    const { userId } = req.body;
+
+    // Create JWT
+    const token = createJWT(userId);
+
+    // Send response
     res.status(200).json({
         success: true,
         token: token,
         message: "Authentication successful",
     });
-};
+});
+
+export default router;
